@@ -1,0 +1,17 @@
+{
+  "name": "kim-and-kayzee",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wedding guest management dashboard for Kim & Kayzee",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "dev": "pnpm -r --parallel dev",
+    "dev:api": "pnpm --filter @wedding/api start:dev",
+    "dev:web": "pnpm --filter @wedding/web dev",
+    "seed": "pnpm --filter @wedding/api seed",
+    "seed:invitations": "pnpm --filter @wedding/api seed:invitations",
+    "build": "pnpm -r build"
+  },
+  "packageManager": "pnpm@11.1.2"
+}

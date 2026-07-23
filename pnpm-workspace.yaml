@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+
+allowBuilds:
+  '@nestjs/core': set this to true or false
+
+# esbuild needs its postinstall to link the platform binary (Vite depends on it).
+# @nestjs/core's postinstall is only a funding banner but is listed so pnpm
+# doesn't treat it as an "ignored build" and exit non-zero.
+onlyBuiltDependencies:
+  - esbuild
+  - "@nestjs/core"
+
+# Skip the implicit `pnpm install` pnpm otherwise runs before every script.
+verifyDepsBeforeRun: false
