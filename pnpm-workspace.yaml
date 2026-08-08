@@ -1,15 +1,14 @@
 packages:
   - "apps/*"
 
+# Approve the dependencies whose install scripts pnpm may run. In current pnpm
+# this is `allowBuilds` (a map); the old `onlyBuiltDependencies` list is gone.
+# Without it, a clean install fails with ERR_PNPM_IGNORED_BUILDS in CI.
+#   - esbuild: links its platform binary; Vite needs it to build the web app.
+#   - @nestjs/core: only prints a funding banner, listed so it isn't "ignored".
 allowBuilds:
-  '@nestjs/core': set this to true or false
+  esbuild: true
+  "@nestjs/core": true
 
-# esbuild needs its postinstall to link the platform binary (Vite depends on it).
-# @nestjs/core's postinstall is only a funding banner but is listed so pnpm
-# doesn't treat it as an "ignored build" and exit non-zero.
-onlyBuiltDependencies:
-  - esbuild
-  - "@nestjs/core"
-
-# Skip the implicit `pnpm install` pnpm otherwise runs before every script.
+# Skip the implicit `pnpm install` before every `pnpm run` script.
 verifyDepsBeforeRun: false
