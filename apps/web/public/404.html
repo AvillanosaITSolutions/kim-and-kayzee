@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kim &amp; Kayzee — Guest List</title>
+    <!--
+      GitHub Pages has no server-side routing, so a deep link like
+      /kim-and-kayzee/i/some-slug returns this 404 page. This script rewrites
+      the path into a query string and redirects to the app's index.html,
+      where a matching snippet restores the original URL for React Router.
+      Technique: https://github.com/rafgraph/spa-github-pages
+      `pathSegmentsToKeep = 1` keeps the leading /<repo>/ base segment.
+    -->
+    <script>
+      (function () {
+        var pathSegmentsToKeep = 1;
+        var l = window.location;
+        l.replace(
+          l.protocol +
+            '//' +
+            l.hostname +
+            (l.port ? ':' + l.port : '') +
+            l.pathname
+              .split('/')
+              .slice(0, 1 + pathSegmentsToKeep)
+              .join('/') +
+            '/?/' +
+            l.pathname
+              .slice(1)
+              .split('/')
+              .slice(pathSegmentsToKeep)
+              .join('/')
+              .replace(/&/g, '~and~') +
+            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+        );
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

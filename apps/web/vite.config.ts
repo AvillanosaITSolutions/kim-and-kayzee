@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react';
 
 // Proxy /api to the NestJS server during development so the browser talks to
 // a single origin and CORS never gets in the way.
-export default defineConfig({
+// GitHub Pages serves a project site under `/<repo>/`, so the built assets
+// need that base path. Override with VITE_BASE (e.g. `/` for a custom domain
+// or user/organization page). Dev always runs at `/`.
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? process.env.VITE_BASE ?? '/kim-and-kayzee/' : '/',
   plugins: [react()],
   server: {
     port: 5173,
@@ -18,4 +22,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

@@ -176,6 +176,80 @@ kim-and-kayzee/
 └── pnpm-workspace.yaml
 ```
 
+## Deployment
+
+Push-to-deploy across three homes. Everything that can be pre-filled **is**
+committed already, so the only value you ever type by hand is the Supabase
+connection string.
+
+| Piece | Host | Deploys when… |
+| --- | --- | --- |
+| Database (Postgres) | **Supabase** | you create the project once |
+| API (NestJS) | **Render** (Docker, free) | every push to `main` (after 1-time connect) |
+| Web (Vite/React) | **GitHub Pages** | every push to `main` |
+
+> Supabase hosts only the **database** — it can't run the NestJS server, so the
+> API lives on Render and connects to Supabase over SSL.
+
+### One-time setup (≈5 minutes, then just push)
+
+**A. Supabase — create the database**
+1. New project at [supabase.com](https://supabase.com) (remember the DB password).
+2. Copy **Project Settings → Database → Connection string → URI** and swap in
+   your password. This string is your `DATABASE_URL`.
+
+   > ⚠️ **Use the pooled connection** (host `…pooler.supabase.com`, port
+   > `6543`), *not* the direct one. Supabase's direct connection is IPv6-only,
+   > and Render's free tier is IPv4-only — the direct string fails with a
+   > connection error. The pooler is IPv4-compatible.
+
+**B. Render — host the API** (auto-deploys on every push once connected)
+1. [dashboard.render.com](https://dashboard.render.com) → **New + → Blueprint**
+   → pick `AvillanosaITSolutions/kim-and-kayzee` → **Apply**. Render reads
+   [`render.yaml`](render.yaml) and provisions everything.
+2. When prompted, paste `DATABASE_URL`. (`CORS_ORIGIN`, `NODE_ENV`, the Docker
+   build, the health check, and auto-deploy are already set in the blueprint.)
+3. Tables are created automatically on first boot (`synchronize: true`).
+
+**C. GitHub Pages — host the web app**
+1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+   That's it — [`deploy-web.yml`](.github/workflows/deploy-web.yml) builds and
+   publishes on every push. The API origin is baked in from
+   [`apps/web/.env.production`](apps/web/.env.production); no variables to set.
+
+Live at **https://avillanosaitsolutions.github.io/kim-and-kayzee/**.
+
+**D. Load the guest list (once)** — from your machine, point the seed at
+Supabase by putting the same `DATABASE_URL` in `apps/api/.env`, then:
+
+```bash
+pnpm seed && pnpm seed:invitations
+```
+
+### After that
+
+Just `git push`. The web redeploys via Actions and the API redeploys via
+Render automatically. Nothing else to touch.
+
+### Where each value lives
+
+| Value | Set in | Secret? |
+| --- | --- | --- |
+| `DATABASE_URL` | Render dashboard + your local `apps/api/.env` (for seeding) | **yes — you type it** |
+| `CORS_ORIGIN` | [`render.yaml`](render.yaml) → `https://avillanosaitsolutions.github.io` | pre-filled |
+| `VITE_API_URL` | [`apps/web/.env.production`](apps/web/.env.production) → `https://kim-and-kayzee-api.onrender.com` | pre-filled |
+| `base` path | [`vite.config.ts`](apps/web/vite.config.ts) → `/kim-and-kayzee/` | pre-filled |
+| `PORT` | injected by Render | automatic |
+
+Deep links (e.g. `/i/<slug>`) work despite Pages having no server routing: an
+SPA fallback in [`404.html`](apps/web/public/404.html) encodes the path and
+`index.html` restores it before React Router boots.
+
+> **Rename the repo or Render service?** Keep these three in sync: the `name` in
+> [`render.yaml`](render.yaml), `VITE_API_URL` in
+> [`apps/web/.env.production`](apps/web/.env.production), and the `base` /
+> `CORS_ORIGIN` values shown above.
+
 ## Notes for developers
 
 - The API uses TypeORM with `synchronize: true` — fine for this single-table

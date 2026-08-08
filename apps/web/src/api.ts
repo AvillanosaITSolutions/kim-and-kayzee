@@ -7,7 +7,11 @@ import type {
   RsvpResponse,
 } from './types';
 
-const BASE = '/api';
+// In dev the Vite proxy forwards `/api` to the local NestJS server. In
+// production the web app is a static site (GitHub Pages) on a different
+// origin from the API, so point it at the deployed API via VITE_API_URL,
+// e.g. https://kim-and-kayzee-api.onrender.com/api
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
