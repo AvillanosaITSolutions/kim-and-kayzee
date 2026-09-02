@@ -8,17 +8,17 @@ import { Invitation } from '../invitations/invitation.entity';
  * this is a small, single-table app — for a larger schema switch to
  * migrations instead.
  *
- * In production (e.g. Supabase Postgres) provide a single `DATABASE_URL`
- * connection string. Supabase requires TLS, so SSL is enabled automatically
- * whenever a connection string is used or `DB_SSL=true` is set. Locally the
- * discrete DB_* vars keep pointing at the docker-compose Postgres.
+ * On the VPS the discrete DB_* vars point at the Postgres container over the
+ * compose network (no TLS). A single `DATABASE_URL` is also supported and takes
+ * precedence — it auto-enables SSL, for a managed Postgres that requires TLS.
+ * Set `DB_SSL=true` to force SSL with the discrete vars.
  */
 export function buildDataSourceOptions(): DataSourceOptions {
   const url = process.env.DATABASE_URL;
 
-  // Supabase (and most managed Postgres) present a certificate that isn't in
-  // Node's default trust store; `rejectUnauthorized: false` keeps the
-  // connection encrypted without pinning the CA.
+  // Most managed Postgres present a certificate that isn't in Node's default
+  // trust store; `rejectUnauthorized: false` keeps the connection encrypted
+  // without pinning the CA.
   const useSsl = Boolean(url) || process.env.DB_SSL === 'true';
   const ssl = useSsl ? { rejectUnauthorized: false } : undefined;
 

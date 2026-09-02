@@ -1,22 +1,71 @@
+name: kim-and-kayzee
+
+# Base stack: Postgres + the NestJS API + the nginx-served web app.
+# Ports are deliberately off the defaults this shared VPS already uses for the
+# auto-checkout-bot stack (5432 / 3000 / 8080) — see DEPLOY.md.
+#
+# Local dev:  `pnpm db:up` starts just Postgres (the api/web run from `pnpm dev`).
+# VPS deploy: the release + tls overrides add restart policies and Traefik.
 services:
   postgres:
     image: postgres:16-alpine
     container_name: kim-and-kayzee-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: wedding
-      POSTGRES_PASSWORD: wedding
-      POSTGRES_DB: wedding
+      POSTGRES_USER: ${POSTGRES_USER:-wedding}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wedding}
+      POSTGRES_DB: ${POSTGRES_DB:-wedding}
     ports:
-      # Host 5433 -> container 5432 (5432 is often taken by another local Postgres)
-      - "5433:5432"
+      # Host 5433 -> container 5432 (5432 is taken by the auto-checkout-bot DB).
+      # Bound to loopback on the VPS: the API reaches Postgres over the compose
+      # network, so the port only needs to be open for a local seed / SSH tunnel.
+      - "${DB_BIND:-127.0.0.1}:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wedding -d wedding"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wedding} -d ${POSTGRES_DB:-wedding}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Discrete DB_* vars point at the Postgres service on the compose network.
+      # (Using these instead of DATABASE_URL keeps SSL off — the local Postgres
+      # doesn't serve TLS; see apps/api/src/config/data-source-options.ts.)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-wedding}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-wedding}
+      DB_NAME: ${POSTGRES_DB:-wedding}
+      # Optional: the browser talks to the web origin and nginx proxies /api
+      # server-side, so cross-origin CORS is not normally needed. Set it only if
+      # something calls the API directly from another origin.
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    ports:
+      # Loopback only — the web nginx proxies to it internally as api:3000.
+      # Host 3001 (3000 is the auto-checkout-bot API) for direct debugging.
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      # Host 8081 -> container :80 (8080 is the auto-checkout-bot back office).
+      # Public by default; set WEB_BIND=127.0.0.1 once HTTPS is live to go
+      # HTTPS-only (Traefik still fronts it — see docker-compose.tls.yml).
+      - "${WEB_BIND:-0.0.0.0}:8081:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

@@ -2,7 +2,8 @@
 # IMPORTANT: build with the repository ROOT as the context so the lockfile and
 # both workspace manifests are available:
 #   docker build -f apps/api/Dockerfile -t wedding-api .
-# Render uses exactly this (see /render.yaml: dockerfilePath + dockerContext).
+# On the VPS, docker compose builds it with the same root context (see
+# docker-compose.yml: build.context: .).
 
 # ---- build: install the workspace and compile the API ----
 FROM node:22-slim AS build
@@ -18,6 +19,10 @@ RUN pnpm --filter @wedding/api build
 # ---- runtime: carry over the installed workspace + compiled output ----
 FROM node:22-slim AS runtime
 ENV NODE_ENV=production
+# corepack makes pnpm available at runtime so the seed can be run inside the
+# container: `docker compose exec -w /repo/apps/api api pnpm seed` (ts-node and the
+# source are already present, since the whole /repo tree is copied below).
+RUN corepack enable
 WORKDIR /repo
 # Copy the entire installed tree so pnpm's symlinked node_modules resolve
 # correctly (the API's deps are hoisted to the root store and symlinked).

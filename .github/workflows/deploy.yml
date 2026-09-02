@@ -1,0 +1,169 @@
+name: Build and deploy to VPS
+
+# Push-to-deploy, modelled on the auto-checkout-bot pipeline and sharing the SAME
+# VPS (72.62.125.235):
+#   push to main  → build-check, then (if green) SSH-deploy to the VPS
+#   pull_request  → build-check only (no deploy)
+# The .env lives ONLY on the VPS (written from the PROD_DOTENV secret) — never in git.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build_check:
+    name: Build check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # esbuild + @nestjs/core build scripts are approved in pnpm-workspace.yaml
+      # (allowBuilds), so a normal frozen install runs them and Vite can build.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No test suites yet — a clean typecheck + build of both apps is the gate
+      # that must pass before anything ships.
+      - name: Build all packages
+        run: pnpm -r build
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build_check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY_1 }}
+
+      - name: Configure SSH known hosts
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -T 30 -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
+          # The entire production .env, pasted into one GitHub secret (see DEPLOY.md).
+          PROD_DOTENV: ${{ secrets.PROD_DOTENV }}
+        run: |
+          set -euo pipefail
+          SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=90 -o ConnectionAttempts=5 -o ServerAliveInterval=60 -o ServerAliveCountMax=10"
+
+          # Materialise the prod .env from the secret and ship it out of band.
+          printf '%s\n' "$PROD_DOTENV" > kk.env
+          scp $SSH_OPTS kk.env "$VPS_USER@$VPS_HOST:/tmp/kk.env"
+          rm -f kk.env
+
+          # Sync the source (the docker build context) to the VPS. Exclude the local
+          # .env so we never clobber the one placed from the secret, plus build output.
+          rsync -az --delete \
+            -e "ssh $SSH_OPTS" \
+            --exclude='.git/' \
+            --exclude='.env' \
+            --exclude='node_modules/' \
+            --exclude='**/node_modules/' \
+            --exclude='**/dist/' \
+            ./ "$VPS_USER@$VPS_HOST:/root/kim-and-kayzee/"
+          echo "Source synced to VPS at SHA: $DEPLOY_SHA"
+
+          ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd /root/kim-and-kayzee
+
+          # Install the .env from the secret (chmod 600 — it holds the DB password).
+          mv /tmp/kk.env .env
+          chmod 600 .env
+
+          COMPOSE_FILES="-f docker-compose.yml -f docker-compose.release.yml"
+
+          # --- HTTPS front door -------------------------------------------------
+          # KK_HOST is OPTIONAL. With nothing set, the hostname is derived from this
+          # box's public IP via sslip.io (which resolves <name>.<dashed-ip>.sslip.io
+          # back to <ip>) — using a "kim." prefix so it is a DISTINCT name from the
+          # auto-checkout-bot back office that shares this Traefik. Set KK_HOST in the
+          # .env to use a domain you own instead.
+          #
+          # Read line-by-line rather than sourcing .env (which holds a password with
+          # characters the shell would interpret). [:space:] strips a stray Windows
+          # carriage return that would otherwise hide inside the Host() rule.
+          KK_HOST=$(grep -m1 '^KK_HOST=' .env | cut -d= -f2- | tr -d '"' | tr -d '[:space:]' || true)
+          if [ -z "$KK_HOST" ]; then
+            PUBLIC_IP=$(curl -fsS --max-time 15 https://api.ipify.org || true)
+            if [ -n "$PUBLIC_IP" ]; then
+              KK_HOST="kim.$(printf '%s' "$PUBLIC_IP" | tr '.' '-').sslip.io"
+              echo "No KK_HOST set — using the derived hostname ${KK_HOST}"
+            fi
+          fi
+
+          # ACME account contact, also optional. Traefik refuses to start with an
+          # empty email flag, so an empty value must become a valid one. Let's Encrypt
+          # never verifies it, so a no-reply address at our own host is fine.
+          ACME_EMAIL=$(grep -m1 '^ACME_EMAIL=' .env | cut -d= -f2- | tr -d '"' | tr -d '[:space:]' || true)
+          [ -n "$ACME_EMAIL" ] || ACME_EMAIL="acme@${KK_HOST}"
+
+          if [ -n "$KK_HOST" ]; then
+            # Exported (not written to .env): the shell environment wins over
+            # --env-file, so the compose projects interpolate these without editing
+            # the credentials file.
+            export KK_HOST ACME_EMAIL
+            # The shared edge network is owned by neither app.
+            docker network inspect edge >/dev/null 2>&1 || docker network create edge
+            # Bring up the shared Traefik ONLY if it isn't already running (the
+            # auto-checkout-bot stack ships an identical copy — don't flap its front
+            # door by recreating it with our config).
+            if ! docker ps --format '{{.Names}}' | grep -q '^edge-traefik-1$'; then
+              docker compose -f deploy/traefik/docker-compose.yml --env-file "$PWD/.env" up -d
+              echo "Started the shared Traefik front door"
+            else
+              echo "Reusing the Traefik front door already running on this VPS"
+            fi
+            COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.tls.yml"
+            echo "HTTPS front door active — https://${KK_HOST}"
+          else
+            # Only reachable if the box cannot see its own public IP. Plain :8081
+            # still serves, so a network blip degrades the deploy rather than breaking it.
+            echo "Could not determine a public hostname — deploying WITHOUT HTTPS (http://<ip>:8081)"
+          fi
+
+          # Build the updated images and (re)create the stack. The API runs TypeORM
+          # synchronize, so the schema is created/updated on boot — no migration step.
+          docker compose $COMPOSE_FILES up -d --build --remove-orphans
+
+          docker image prune -f
+          echo "=== DEPLOYED SHA: ${DEPLOY_SHA} ==="
+          docker compose $COMPOSE_FILES ps
+          REMOTE

@@ -178,77 +178,64 @@ kim-and-kayzee/
 
 ## Deployment
 
-Push-to-deploy across three homes. Everything that can be pre-filled **is**
-committed already, so the only value you ever type by hand is the Supabase
-connection string.
+Push-to-deploy to a **VPS** (`72.62.125.235`, shared with the auto-checkout-bot
+stack). One `git push` builds three Docker images on the box — Postgres, the API,
+and the nginx-served web app — and puts the site behind an automatic HTTPS front
+door. The full guide is in **[DEPLOY.md](DEPLOY.md)**; the short version:
 
-| Piece | Host | Deploys when… |
+| Piece | Where | Deploys when… |
 | --- | --- | --- |
-| Database (Postgres) | **Supabase** | you create the project once |
-| API (NestJS) | **Render** (Docker, free) | every push to `main` (after 1-time connect) |
-| Web (Vite/React) | **GitHub Pages** | every push to `main` |
+| Database (Postgres 16) | **VPS**, Docker (`pgdata` volume) | every push to `main` |
+| API (NestJS) | **VPS**, Docker | every push to `main` |
+| Web (Vite/React) | **VPS**, nginx (same-origin `/api` proxy) | every push to `main` |
 
-> Supabase hosts only the **database** — it can't run the NestJS server, so the
-> API lives on Render and connects to Supabase over SSL.
+GitHub Actions ([`deploy.yml`](.github/workflows/deploy.yml)) runs a build check,
+then SSHes in, rsyncs the source, and runs `docker compose up -d --build`. The
+whole production `.env` lives **only on the VPS**, materialised from the
+`PROD_DOTENV` GitHub secret — nothing sensitive is committed.
 
-### One-time setup (≈5 minutes, then just push)
+### One-time setup
 
-**A. Supabase — create the database**
-1. New project at [supabase.com](https://supabase.com) (remember the DB password).
-2. Copy **Project Settings → Database → Connection string → URI** and swap in
-   your password. This string is your `DATABASE_URL`.
+Add four repo secrets (**Settings → Secrets and variables → Actions**):
 
-   > ⚠️ **Use the pooled connection** (host `…pooler.supabase.com`, port
-   > `6543`), *not* the direct one. Supabase's direct connection is IPv6-only,
-   > and Render's free tier is IPv4-only — the direct string fails with a
-   > connection error. The pooler is IPv4-compatible.
+| Secret | Value |
+| --- | --- |
+| `VPS_HOST` | `72.62.125.235` |
+| `VPS_USER` | `root` |
+| `VPS_SSH_KEY_1` | the private deploy key |
+| `PROD_DOTENV` | the whole production `.env` (template: [`.env.example`](.env.example)) — set at least `POSTGRES_PASSWORD` |
 
-**B. Render — host the API** (auto-deploys on every push once connected)
-1. [dashboard.render.com](https://dashboard.render.com) → **New + → Blueprint**
-   → pick `AvillanosaITSolutions/kim-and-kayzee` → **Apply**. Render reads
-   [`render.yaml`](render.yaml) and provisions everything.
-2. When prompted, paste `DATABASE_URL`. (`CORS_ORIGIN`, `NODE_ENV`, the Docker
-   build, the health check, and auto-deploy are already set in the blueprint.)
-3. Tables are created automatically on first boot (`synchronize: true`).
-
-**C. GitHub Pages — host the web app**
-1. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-   That's it — [`deploy-web.yml`](.github/workflows/deploy-web.yml) builds and
-   publishes on every push. The API origin is baked in from
-   [`apps/web/.env.production`](apps/web/.env.production); no variables to set.
-
-Live at **https://avillanosaitsolutions.github.io/kim-and-kayzee/**.
-
-**D. Load the guest list (once)** — from your machine, point the seed at
-Supabase by putting the same `DATABASE_URL` in `apps/api/.env`, then:
+Then `git push origin main`. After the first deploy, load the guest list once
+(inside the API container):
 
 ```bash
-pnpm seed && pnpm seed:invitations
+cd /root/kim-and-kayzee
+C="docker compose -f docker-compose.yml -f docker-compose.release.yml -f docker-compose.tls.yml"
+$C exec -w /repo/apps/api api pnpm seed
+$C exec -w /repo/apps/api api pnpm seed:invitations
 ```
+
+### HTTPS
+
+Zero-config: the deploy derives a hostname from the VPS's public IP via sslip.io
+and Traefik issues a Let's Encrypt certificate. Live at
+**https://kim.72-62-125-235.sslip.io** (or set `KK_HOST` to a domain you own).
+The Traefik front door is shared with auto-checkout-bot on the same box.
+
+### Ports on the VPS
+
+Chosen to avoid the auto-checkout-bot stack (which uses `5432` / `3000` / `8080`):
+
+| Service | VPS port | Notes |
+| --- | --- | --- |
+| web (nginx) | `8081` (public) + `443` via Traefik | serves the SPA, proxies `/api` |
+| api | `127.0.0.1:3001` | loopback only, proxied internally |
+| postgres | `127.0.0.1:5433` | loopback only, reached over the compose network |
 
 ### After that
 
-Just `git push`. The web redeploys via Actions and the API redeploys via
-Render automatically. Nothing else to touch.
-
-### Where each value lives
-
-| Value | Set in | Secret? |
-| --- | --- | --- |
-| `DATABASE_URL` | Render dashboard + your local `apps/api/.env` (for seeding) | **yes — you type it** |
-| `CORS_ORIGIN` | [`render.yaml`](render.yaml) → `https://avillanosaitsolutions.github.io` | pre-filled |
-| `VITE_API_URL` | [`apps/web/.env.production`](apps/web/.env.production) → `https://kim-and-kayzee-api.onrender.com` | pre-filled |
-| `base` path | [`vite.config.ts`](apps/web/vite.config.ts) → `/kim-and-kayzee/` | pre-filled |
-| `PORT` | injected by Render | automatic |
-
-Deep links (e.g. `/i/<slug>`) work despite Pages having no server routing: an
-SPA fallback in [`404.html`](apps/web/public/404.html) encodes the path and
-`index.html` restores it before React Router boots.
-
-> **Rename the repo or Render service?** Keep these three in sync: the `name` in
-> [`render.yaml`](render.yaml), `VITE_API_URL` in
-> [`apps/web/.env.production`](apps/web/.env.production), and the `base` /
-> `CORS_ORIGIN` values shown above.
+Just `git push`. Every push to `main` rebuilds and redeploys the whole stack.
+Nothing else to touch.
 
 ## Notes for developers
 

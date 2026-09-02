@@ -1,0 +1,10 @@
+# Production override: keep the stack up across reboots and crashes.
+# Applied on the VPS as:
+#   docker compose -f docker-compose.yml -f docker-compose.release.yml up -d --build
+services:
+  postgres:
+    restart: unless-stopped
+  api:
+    restart: unless-stopped
+  web:
+    restart: unless-stopped

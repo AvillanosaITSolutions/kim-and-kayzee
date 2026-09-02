@@ -1,0 +1,29 @@
+# HTTPS override: put the web app behind the shared Traefik "edge" front door.
+# Applied on the VPS ONLY when a hostname is available (KK_HOST, defaulting to a
+# sslip.io name derived from the box's public IP) — the deploy adds this file then:
+#   docker compose -f docker-compose.yml -f docker-compose.release.yml -f docker-compose.tls.yml up -d --build
+#
+# Router / service / middleware names are prefixed "kk" so they never collide with
+# the auto-checkout-bot ("acb") labels that share the same Traefik on this VPS.
+services:
+  web:
+    networks:
+      - default
+      - edge
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=edge"
+      - "traefik.http.routers.kk.rule=Host(`${KK_HOST}`)"
+      - "traefik.http.routers.kk.entrypoints=websecure"
+      - "traefik.http.routers.kk.tls=true"
+      - "traefik.http.routers.kk.tls.certresolver=le"
+      - "traefik.http.routers.kk.middlewares=kk-headers"
+      - "traefik.http.services.kk.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.kk-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.kk-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.kk-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.kk-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+
+networks:
+  edge:
+    external: true

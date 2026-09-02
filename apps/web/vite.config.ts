@@ -3,11 +3,10 @@ import react from '@vitejs/plugin-react';
 
 // Proxy /api to the NestJS server during development so the browser talks to
 // a single origin and CORS never gets in the way.
-// GitHub Pages serves a project site under `/<repo>/`, so the built assets
-// need that base path. Override with VITE_BASE (e.g. `/` for a custom domain
-// or user/organization page). Dev always runs at `/`.
+// The app is served at the domain root on the VPS (behind nginx/Traefik), so the
+// base path is `/`. Override with VITE_BASE only if you host it under a subpath.
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? process.env.VITE_BASE ?? '/kim-and-kayzee/' : '/',
+  base: command === 'build' ? process.env.VITE_BASE ?? '/' : '/',
   plugins: [react()],
   server: {
     port: 5173,

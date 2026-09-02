@@ -8,9 +8,10 @@ import type {
 } from './types';
 
 // In dev the Vite proxy forwards `/api` to the local NestJS server. In
-// production the web app is a static site (GitHub Pages) on a different
-// origin from the API, so point it at the deployed API via VITE_API_URL,
-// e.g. https://kim-and-kayzee-api.onrender.com/api
+// production the web app is served same-origin behind nginx, which proxies
+// `/api` to the API container — so VITE_API_URL is left empty and the browser
+// calls `/api` on whatever host served the app. Set VITE_API_URL only for a
+// genuinely separate-origin API.
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 async function handle<T>(res: Response): Promise<T> {

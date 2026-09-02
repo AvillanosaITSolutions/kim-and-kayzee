@@ -9,7 +9,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "seed": "ts-node -r tsconfig-paths/register src/seed/seed.ts",
-    "seed:invitations": "ts-node -r tsconfig-paths/register src/seed/seed-invitations.ts"
+    "seed:invitations": "ts-node -r tsconfig-paths/register src/seed/seed-invitations.ts",
+    "migrate:guests": "ts-node -r tsconfig-paths/register src/seed/migrations/2026-08-08-guest-masterlist-refresh.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",
