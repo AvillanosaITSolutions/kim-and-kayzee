@@ -44,4 +44,14 @@ export const WEDDING = {
     ],
     avoidNote: 'these shades are reserved for the bride alone',
   },
+
+  // A gentle note that the celebration is adults-focused. ✏️ Edit freely.
+  adultsOnly: {
+    title: 'An Adults’ Celebration',
+    body: "With love, we've planned our wedding as an adults-only celebration — a relaxed evening for you to unwind, dance, and simply enjoy, free from the hassle of babysitting.",
+    exception:
+      'A few little ones from our immediate family are the cherished exception, and are warmly welcome.',
+    closing:
+      'Thank you so much for understanding — consider it our treat: a well-deserved night off. We can’t wait to celebrate with you!',
+  },
 } as const;

@@ -355,6 +355,27 @@ export default function InvitePage() {
     });
 
     pages.push({
+      key: 'note',
+      content: (
+        <>
+          <p className="ornament">❦</p>
+          <h3 className="page-title">{WEDDING.adultsOnly.title}</h3>
+          <div className="roles" style={{ textAlign: 'center' }}>
+            <p className="dear-body" style={{ margin: '2px auto 0' }}>
+              {WEDDING.adultsOnly.body}
+            </p>
+            <p className="dear-note" style={{ marginTop: 14 }}>
+              {WEDDING.adultsOnly.exception}
+            </p>
+            <p className="dear-body" style={{ margin: '14px auto 0' }}>
+              {WEDDING.adultsOnly.closing}
+            </p>
+          </div>
+        </>
+      ),
+    });
+
+    pages.push({
       key: 'rsvp',
       content: (
         <div className="rsvp-block">
