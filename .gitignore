@@ -29,3 +29,6 @@ apps/web/.vite/
 
 # nest
 apps/api/dist/
+
+# typescript build info
+*.tsbuildinfo

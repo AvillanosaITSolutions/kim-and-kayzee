@@ -12,6 +12,7 @@ import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { SubmitRsvpDto } from './dto/rsvp.dto';
+import { Public } from '../auth/public.decorator';
 
 @Controller('invitations')
 export class InvitationsController {
@@ -22,13 +23,15 @@ export class InvitationsController {
     return this.invitations.findAll();
   }
 
-  // Public lookup for the standalone e-invite page.
+  // Public lookup for the standalone e-invite page — the ONLY public GET.
+  @Public()
   @Get('slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.invitations.findBySlug(slug);
   }
 
   // Public group-RSVP submission from the e-invite page.
+  @Public()
   @Post('slug/:slug/rsvp')
   submitRsvp(@Param('slug') slug: string, @Body() dto: SubmitRsvpDto) {
     return this.invitations.submitRsvp(slug, dto);

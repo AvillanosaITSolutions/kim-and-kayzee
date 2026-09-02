@@ -15,6 +15,11 @@ import type {
 const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api`;
 
 async function handle<T>(res: Response): Promise<T> {
+  // An expired/absent session on a protected endpoint — bounce the admin UI
+  // back to the login screen (RequireAuth listens for this).
+  if (res.status === 401) {
+    window.dispatchEvent(new Event('kk-unauthorized'));
+  }
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {

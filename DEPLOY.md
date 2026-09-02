@@ -83,8 +83,15 @@ POSTGRES_USER=wedding
 POSTGRES_PASSWORD=<strong-random>
 POSTGRES_DB=wedding
 
-# Everything else is optional. Leave KK_HOST blank to get HTTPS on a derived
-# sslip.io hostname (kim.<dashed-ip>.sslip.io) with zero configuration.
+# Admin dashboard login (the public /i/<slug> invites need none). Without
+# ADMIN_PASSWORD the login is DISABLED (fail closed). AUTH_SECRET signs the
+# session cookie — `openssl rand -hex 32`, keep it stable across deploys.
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<pick-a-password>
+AUTH_SECRET=<openssl rand -hex 32>
+
+# KK_HOST defaults to kim-and-kayzee.com in the deploy; set it here only to
+# override with a different domain.
 ```
 
 ---

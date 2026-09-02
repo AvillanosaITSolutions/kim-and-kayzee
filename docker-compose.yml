@@ -47,6 +47,12 @@ services:
       # server-side, so cross-origin CORS is not normally needed. Set it only if
       # something calls the API directly from another origin.
       CORS_ORIGIN: ${CORS_ORIGIN:-}
+      # Admin login for the dashboard (the public /i/<slug> invites need none).
+      # Set ADMIN_PASSWORD + AUTH_SECRET in PROD_DOTENV; without a password the
+      # login is disabled (fail closed). See .env.example.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
     ports:
       # Loopback only — the web nginx proxies to it internally as api:3000.
       # Host 3001 (3000 is the auto-checkout-bot API) for direct debugging.
