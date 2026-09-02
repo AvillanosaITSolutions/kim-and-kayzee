@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type AnimationEvent as ReactAnimationEvent,
+  type ReactNode,
+  type TouchEvent as ReactTouchEvent,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import type { Guest, Invitation, RsvpStatus } from '../types';
@@ -31,6 +40,21 @@ function FacebookIcon() {
   );
 }
 
+interface BookPage {
+  key: string;
+  cls?: string;
+  content: ReactNode;
+}
+
+type Turn = { dir: 'next' | 'prev'; from: number; to: number } | null;
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 export default function InvitePage() {
   const { slug = '' } = useParams();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
@@ -44,12 +68,13 @@ export default function InvitePage() {
 
   // Envelope "tap to open" animation. Respect reduced-motion by skipping it.
   const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      ? 'open'
-      : 'closed',
+    prefersReducedMotion() ? 'open' : 'closed',
   );
-  const [scrolled, setScrolled] = useState(false);
+
+  // Book paging.
+  const [idx, setIdx] = useState(0);
+  const [turn, setTurn] = useState<Turn>(null);
+  const touchRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     document.title = `${WEDDING.groom} & ${WEDDING.bride} — You're Invited`;
@@ -68,13 +93,6 @@ export default function InvitePage() {
       document.body.style.overflow = '';
     };
   }, [phase]);
-
-  // Hide the scroll cue once the guest starts scrolling.
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -108,7 +126,7 @@ export default function InvitePage() {
     (m) => choices[m.id] === 'Attending',
   ).length;
 
-  // Warn "idiots" who try to leave with responses they never sent.
+  // Warn guests who try to leave with responses they never sent.
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -156,98 +174,58 @@ export default function InvitePage() {
     return hasSaved ? 'Send updated RSVP' : 'Send RSVP';
   }, [saving, allAnswered, answered, total, justConfirmed, hasSaved]);
 
-  if (loading) {
-    return (
-      <div className="invite-page">
-        <div className="loading">Loading your invitation…</div>
-      </div>
-    );
-  }
-
-  if (notFound || !invitation) {
-    return (
-      <div className="invite-page">
-        <div className="invite-card-public">
-          <p className="script">
-            {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
-          </p>
-          <p className="invite-error">
-            We couldn’t find this invitation. Please check the link.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // ---- Build the book's pages from the invitation ----
   const names = members.map(guestName);
   const roledMembers = members
     .map((m) => ({ guest: m, role: roleFor(m.guestType) }))
     .filter((x): x is { guest: Guest; role: NonNullable<typeof x.role> } =>
       x.role !== null,
     );
-  // "white, cream, or ivory"
   const avoidLower = WEDDING.attire.avoid.map((c) => c.name.toLowerCase());
   const avoidPhrase =
     avoidLower.length > 1
       ? `${avoidLower.slice(0, -1).join(', ')}, or ${avoidLower[avoidLower.length - 1]}`
       : (avoidLower[0] ?? '');
 
-  const sealed = phase !== 'open';
-
-  return (
-    <div
-      className={`invite-page ${canSend ? 'has-send-bar' : ''} ${
-        sealed ? 'is-sealed' : ''
-      }`}
-    >
-      <div className="invite-card-public">
-        <p className="eyebrow gold">You are cordially invited</p>
-        <h1 className="script">
-          {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
-        </h1>
-        <div className="divider" />
-        <p className="invite-line">{WEDDING.invitationLine}</p>
-
-        <div className="invite-details">
-          <div className="detail">
-            <span className="detail-label">When</span>
-            <span className="detail-value">
-              {WEDDING.dayLabel}, {WEDDING.dateLabel}
-            </span>
-            <span className="detail-sub">
-              {WEDDING.ceremonyTime || 'Time to be announced'}
-            </span>
+  const pages: BookPage[] = [];
+  if (invitation) {
+    pages.push({
+      key: 'cover',
+      cls: 'cover',
+      content: (
+        <>
+          <p className="eyebrow gold">You are cordially invited</p>
+          <div className="monogram">
+            {WEDDING.groom[0]}
+            <span className="amp">&amp;</span>
+            {WEDDING.bride[0]}
           </div>
-          <div className="detail">
-            <span className="detail-label">Where</span>
-            <span className="detail-value">{WEDDING.venueName}</span>
-            <span className="detail-sub">{WEDDING.venueAddress}</span>
-            <span className="detail-sub">{WEDDING.receptionNote}</span>
-          </div>
-        </div>
-
-        <div className="venue-actions">
-          <a
-            className="venue-link"
-            href={WEDDING.mapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <h1 className="script" style={{ marginTop: 14 }}>
+            {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
+          </h1>
+          <div className="divider" />
+          <p className="cover-date">
+            {WEDDING.dayLabel}, {WEDDING.dateLabel}
+          </p>
+          <p className="ornament">✦ ❦ ✦</p>
+          <p className="turn-hint">Turn the page ›</p>
+          <button
+            className="skip-rsvp"
+            onClick={() => turnTo(pages.findIndex((p) => p.key === 'rsvp'))}
           >
-            <MapPinIcon />
-            View on map
-          </a>
-          <a
-            className="venue-link"
-            href={WEDDING.facebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FacebookIcon />
-            Venue Facebook
-          </a>
-        </div>
+            Skip to RSVP
+          </button>
+        </>
+      ),
+    });
 
-        <div className="dear">
+    pages.push({
+      key: 'invitation',
+      content: (
+        <>
+          <p className="ornament">❦</p>
+          <p className="eyebrow gold">With joyful hearts</p>
+          <p className="invite-line">{WEDDING.invitationLine}</p>
           <p className="dear-to">
             Dear {invitation.addressLabel || joinNames(names)},
           </p>
@@ -258,62 +236,127 @@ export default function InvitePage() {
           {invitation.message && (
             <p className="dear-note">“{invitation.message}”</p>
           )}
-        </div>
+        </>
+      ),
+    });
 
-        {roledMembers.length > 0 && (
-          <div className="roles">
-            <span className="detail-label">
-              {roledMembers.length === 1 ? 'Your Role' : 'Your Roles'}
-            </span>
-            <p className="roles-intro">
-              You hold a cherished place in our celebration —
-            </p>
-            <ul className="roles-list">
-              {roledMembers.map(({ guest, role }) => (
-                <li key={guest.id} className="role-item">
-                  <span className="role-icon" aria-hidden="true">
-                    {role.icon}
-                  </span>
-                  <span className="role-name">{guestName(guest)}</span>
-                  <span className="role-badge">{role.label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="attire">
-          <span className="detail-label">Attire</span>
-          <p className="attire-main">{WEDDING.attire.main}</p>
-          <div className="swatches">
-            {WEDDING.attire.wear.map((c) => (
-              <span key={c.name} className="swatch">
-                <span className="swatch-dot" style={{ background: c.hex }} />
-                {c.name}
+    pages.push({
+      key: 'details',
+      content: (
+        <>
+          <p className="ornament">❦</p>
+          <h3 className="page-title">When &amp; Where</h3>
+          <div className="invite-details">
+            <div className="detail">
+              <span className="detail-label">When</span>
+              <span className="detail-value">
+                {WEDDING.dayLabel}, {WEDDING.dateLabel}
               </span>
-            ))}
+              <span className="detail-sub">
+                {WEDDING.ceremonyTime || 'Time to be announced'}
+              </span>
+            </div>
+            <div className="detail">
+              <span className="detail-label">Where</span>
+              <span className="detail-value">{WEDDING.venueName}</span>
+              <span className="detail-sub">{WEDDING.venueAddress}</span>
+              <span className="detail-sub">{WEDDING.receptionNote}</span>
+            </div>
           </div>
+          <div className="venue-actions">
+            <a
+              className="venue-link"
+              href={WEDDING.mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <MapPinIcon />
+              View on map
+            </a>
+            <a
+              className="venue-link"
+              href={WEDDING.facebookUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FacebookIcon />
+              Venue Facebook
+            </a>
+          </div>
+        </>
+      ),
+    });
 
-          <div className="attire-avoid-block">
-            <span className="no-badge">🚫 Please do not wear</span>
+    if (roledMembers.length > 0) {
+      pages.push({
+        key: 'roles',
+        content: (
+          <>
+            <p className="ornament">❦</p>
+            <h3 className="page-title">
+              {roledMembers.length === 1 ? 'Your Role' : 'Your Roles'}
+            </h3>
+            <div className="roles">
+              <p className="roles-intro">
+                You hold a cherished place in our celebration —
+              </p>
+              <ul className="roles-list">
+                {roledMembers.map(({ guest, role }) => (
+                  <li key={guest.id} className="role-item">
+                    <span className="role-icon" aria-hidden="true">
+                      {role.icon}
+                    </span>
+                    <span className="role-name">{guestName(guest)}</span>
+                    <span className="role-badge">{role.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        ),
+      });
+    }
+
+    pages.push({
+      key: 'attire',
+      content: (
+        <>
+          <p className="ornament">❦</p>
+          <h3 className="page-title">Attire</h3>
+          <div className="attire">
+            <p className="attire-main">{WEDDING.attire.main}</p>
             <div className="swatches">
-              {WEDDING.attire.avoid.map((c) => (
-                <span key={c.name} className="swatch swatch-avoid">
-                  <span
-                    className="swatch-dot"
-                    style={{ background: c.hex }}
-                  />
+              {WEDDING.attire.wear.map((c) => (
+                <span key={c.name} className="swatch">
+                  <span className="swatch-dot" style={{ background: c.hex }} />
                   {c.name}
                 </span>
               ))}
             </div>
-            <p className="attire-note">
-              Out of love for the bride, kindly <strong>avoid wearing</strong>{' '}
-              {avoidPhrase} — {WEDDING.attire.avoidNote}.
-            </p>
+            <div className="attire-avoid-block">
+              <span className="no-badge">🚫 Please do not wear</span>
+              <div className="swatches">
+                {WEDDING.attire.avoid.map((c) => (
+                  <span key={c.name} className="swatch swatch-avoid">
+                    <span className="swatch-dot" style={{ background: c.hex }} />
+                    {c.name}
+                  </span>
+                ))}
+              </div>
+              <p className="attire-note">
+                Out of love for the bride, kindly{' '}
+                <strong>avoid wearing</strong> {avoidPhrase} —{' '}
+                {WEDDING.attire.avoidNote}.
+              </p>
+            </div>
           </div>
-        </div>
+        </>
+      ),
+    });
 
+    pages.push({
+      key: 'rsvp',
+      content: (
         <div className="rsvp-block">
           <p className="rsvp-title">Will you celebrate with us?</p>
           <p className="rsvp-sub">
@@ -321,7 +364,6 @@ export default function InvitePage() {
             press <strong>Send RSVP</strong> to confirm.
           </p>
 
-          {/* Live progress so an incomplete response is obvious. */}
           <div
             className={`rsvp-progress ${allAnswered ? 'done' : ''}`}
             aria-live="polite"
@@ -370,7 +412,6 @@ export default function InvitePage() {
             })}
           </div>
 
-          {/* Nudge that appears the moment they're ready but haven't sent. */}
           {canSend && (
             <div className="send-nudge" role="alert">
               ⚠️ Almost done! Your responses aren’t saved yet — tap the green
@@ -397,29 +438,193 @@ export default function InvitePage() {
             </p>
           )}
         </div>
+      ),
+    });
 
-        <div className="invite-foot">
-          <span>{WEDDING.venueName}</span>
-          <span className="gold">{WEDDING.dateLabel}</span>
+    pages.push({
+      key: 'closing',
+      cls: 'closing',
+      content: (
+        <>
+          <p className="ornament gold">✦ ❦ ✦</p>
+          <p className="signoff">With all our love,</p>
+          <h2 className="script" style={{ fontSize: 30, margin: '6px 0 0' }}>
+            {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
+          </h2>
+          <div className="divider" />
+          <p className="detail-sub">
+            {WEDDING.venueName} · {WEDDING.dateLabel}
+          </p>
+        </>
+      ),
+    });
+  }
+
+  const pageCount = pages.length;
+
+  function turnTo(to: number) {
+    if (turn) return;
+    if (to < 0 || to >= pageCount || to === idx) return;
+    const dir: 'next' | 'prev' = to > idx ? 'next' : 'prev';
+    if (prefersReducedMotion()) {
+      setIdx(to);
+      return;
+    }
+    setTurn({ dir, from: idx, to });
+  }
+
+  function onTurnEnd(e: ReactAnimationEvent) {
+    if (e.animationName !== 'leaf-next' && e.animationName !== 'leaf-prev') {
+      return; // ignore the curl overlay's bubbling animationend
+    }
+    if (turn) setIdx(turn.to);
+    setTurn(null);
+  }
+
+  // Keyboard arrows turn pages once the book is open.
+  useEffect(() => {
+    if (phase !== 'open') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') turnTo(idx + 1);
+      else if (e.key === 'ArrowLeft') turnTo(idx - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // turnTo closes over idx/turn/pageCount; re-bind when they change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, idx, turn, pageCount]);
+
+  // Fallback: if the flip's animationend never fires (e.g. a backgrounded tab
+  // throttles CSS animations), commit the turn anyway so the book can't get
+  // stuck mid-page. Cleared as soon as animationend commits normally.
+  useEffect(() => {
+    if (!turn) return;
+    const t = window.setTimeout(() => {
+      setIdx(turn.to);
+      setTurn(null);
+    }, 900);
+    return () => window.clearTimeout(t);
+  }, [turn]);
+
+  function onTouchStart(e: ReactTouchEvent) {
+    const t = e.touches[0];
+    touchRef.current = { x: t.clientX, y: t.clientY };
+  }
+  function onTouchEnd(e: ReactTouchEvent) {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    // Horizontal swipe past the threshold turns a page; vertical still scrolls.
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      turnTo(dx < 0 ? idx + 1 : idx - 1);
+    }
+  }
+
+  function renderPage(i: number) {
+    const p = pages[i];
+    if (!p) return null;
+    return (
+      <div className={`page ${p.cls ?? ''}`}>
+        {p.content}
+        {p.cls !== 'cover' && p.cls !== 'closing' && (
+          <div className="page-num">{i + 1}</div>
+        )}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="invite-page">
+        <div className="loading">Loading your invitation…</div>
+      </div>
+    );
+  }
+
+  if (notFound || !invitation) {
+    return (
+      <div className="invite-page">
+        <div className="invite-card-public">
+          <p className="script">
+            {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
+          </p>
+          <p className="invite-error">
+            We couldn’t find this invitation. Please check the link.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const sealed = phase !== 'open';
+  const basePage = turn ? (turn.dir === 'next' ? turn.to : turn.from) : idx;
+  const overlayPage = turn
+    ? turn.dir === 'next'
+      ? turn.from
+      : turn.to
+    : idx;
+
+  return (
+    <div className={`invite-page ${canSend ? 'has-send-bar' : ''}`}>
+      <div className="book-wrap">
+        <div className="book" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          <div className="leaf-static">{renderPage(basePage)}</div>
+          {turn && (
+            <div className={`leaf-turn ${turn.dir}`} onAnimationEnd={onTurnEnd}>
+              <div className="leaf-face leaf-front">
+                {renderPage(overlayPage)}
+              </div>
+              <div className="leaf-face leaf-back" />
+              <div className="curl" />
+            </div>
+          )}
+        </div>
+
+        <div className="book-nav">
+          <button
+            className="book-btn"
+            onClick={() => turnTo(idx - 1)}
+            disabled={idx === 0 || !!turn}
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+          <span className="book-progress">
+            {idx + 1} / {pageCount}
+          </span>
+          <button
+            className="book-btn"
+            onClick={() => turnTo(idx + 1)}
+            disabled={idx === pageCount - 1 || !!turn}
+            aria-label="Next page"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="dots">
+          {pages.map((p, i) => (
+            <span
+              key={p.key}
+              className={`dot ${i === idx ? 'on' : ''}`}
+              onClick={() => turnTo(i)}
+              role="button"
+              aria-label={`Go to page ${i + 1}`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Persistent bottom reminder while a complete response is unsent — so
-          it's always one tap away no matter where they've scrolled. */}
+      {/* Persistent bottom reminder while a complete response is unsent. */}
       {canSend && (
         <div className="send-bar">
           <span className="send-bar-text">You haven’t sent your RSVP yet</span>
           <button className="btn-send pulse" onClick={send} disabled={!canSend}>
             {saving ? 'Sending…' : 'Send RSVP'}
           </button>
-        </div>
-      )}
-
-      {/* Bouncing hint so guests know the page continues below. */}
-      {phase === 'open' && !scrolled && !canSend && (
-        <div className="scroll-cue" aria-hidden="true">
-          <span>Scroll for details &amp; RSVP</span>
-          <span className="chev">⌄</span>
         </div>
       )}
 
