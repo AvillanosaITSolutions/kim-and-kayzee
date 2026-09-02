@@ -6,6 +6,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Behind nginx/Traefik: trust the proxy so req.ip reflects the real client
+  // (X-Forwarded-For) rather than the proxy — needed for the login PIN throttle.
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({

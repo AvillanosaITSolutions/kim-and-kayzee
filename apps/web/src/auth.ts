@@ -19,16 +19,17 @@ export async function fetchSession(): Promise<Session> {
   }
 }
 
-export async function login(username: string, password: string): Promise<void> {
+export async function login(pin: string): Promise<void> {
   const res = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ pin }),
   });
   if (!res.ok) {
-    if (res.status === 401) throw new Error('Incorrect username or password');
-    let message = 'Login failed';
+    if (res.status === 401) throw new Error('Incorrect PIN');
+    let message =
+      res.status === 429 ? 'Too many attempts — please wait a minute.' : 'Login failed';
     try {
       const body = await res.json();
       if (body?.message) {

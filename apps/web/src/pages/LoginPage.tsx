@@ -1,72 +1,117 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import {
+  useCallback,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { login } from '../auth';
 import { WEDDING } from '../wedding';
 
+const LEN = 4;
+
 /**
- * Login screen shown in place of the admin dashboard when there's no session.
- * Styled inline (sage palette) so it needs no additions to index.css.
+ * Login screen: a 4-digit PIN pad shown in place of the admin dashboard when
+ * there's no session. Styled inline (sage palette) so it needs no additions to
+ * index.css. Auto-submits once all four digits are entered.
  */
 export default function LoginPage({ onSuccess }: { onSuccess: () => void }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [digits, setDigits] = useState<string[]>(Array(LEN).fill(''));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await login(username.trim(), password);
-      onSuccess();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
-      setBusy(false);
+  const focusBox = (i: number) => inputs.current[i]?.focus();
+
+  const submit = useCallback(
+    async (pin: string) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await login(pin);
+        onSuccess();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Login failed');
+        setDigits(Array(LEN).fill(''));
+        focusBox(0);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onSuccess],
+  );
+
+  function setDigit(i: number, value: string) {
+    const d = value.replace(/\D/g, '').slice(-1); // keep last typed digit only
+    const next = [...digits];
+    next[i] = d;
+    setDigits(next);
+    if (d && i < LEN - 1) focusBox(i + 1);
+    if (next.every((x) => x !== '')) submit(next.join(''));
+  }
+
+  function onKeyDown(i: number, e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      const next = [...digits];
+      next[i - 1] = '';
+      setDigits(next);
+      focusBox(i - 1);
+      e.preventDefault();
     }
+  }
+
+  function onPaste(e: ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, LEN);
+    if (!text) return;
+    e.preventDefault();
+    const next = Array(LEN).fill('');
+    for (let i = 0; i < text.length; i++) next[i] = text[i];
+    setDigits(next);
+    if (text.length === LEN) submit(text);
+    else focusBox(text.length);
   }
 
   return (
     <div style={styles.wrap}>
-      <form style={styles.card} onSubmit={submit}>
+      <div style={styles.card}>
         <p style={styles.eyebrow}>The Wedding Of</p>
         <h1 style={styles.title}>
           {WEDDING.groom} <span style={styles.amp}>&amp;</span> {WEDDING.bride}
         </h1>
         <div style={styles.divider} />
         <p style={styles.sub}>Guest &amp; Invitation Manager</p>
-        <p style={styles.note}>This dashboard is private. Please sign in.</p>
+        <p style={styles.note}>Enter your 4-digit PIN to continue.</p>
 
-        <label style={styles.label}>
-          Username
-          <input
-            style={styles.input}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            autoFocus
-            required
-          />
-        </label>
-
-        <label style={styles.label}>
-          Password
-          <input
-            style={styles.input}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
+        <div style={styles.pinRow} onPaste={onPaste}>
+          {digits.map((d, i) => (
+            <input
+              key={i}
+              ref={(el) => {
+                inputs.current[i] = el;
+              }}
+              value={d}
+              onChange={(e) => setDigit(i, e.target.value)}
+              onKeyDown={(e) => onKeyDown(i, e)}
+              onFocus={(e) => e.target.select()}
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={1}
+              disabled={busy}
+              aria-label={`PIN digit ${i + 1}`}
+              autoFocus={i === 0}
+              style={{
+                ...styles.pinBox,
+                ...(d ? styles.pinBoxFilled : null),
+              }}
+            />
+          ))}
+        </div>
 
         {error && <p style={styles.error}>{error}</p>}
-
-        <button style={styles.button} type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+        {busy && <p style={styles.checking}>Checking…</p>}
+      </div>
     </div>
   );
 }
@@ -107,43 +152,36 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 2,
   },
   sub: { margin: 0, color: '#6b7d6b', fontSize: 14 },
-  note: { margin: '4px 0 20px', color: '#93a393', fontSize: 13 },
-  label: {
-    display: 'block',
-    textAlign: 'left',
-    fontSize: 13,
-    color: '#4f6b52',
-    fontWeight: 600,
-    marginBottom: 14,
+  note: { margin: '4px 0 22px', color: '#93a393', fontSize: 13 },
+  pinRow: {
+    display: 'flex',
+    gap: 12,
+    justifyContent: 'center',
   },
-  input: {
-    width: '100%',
-    boxSizing: 'border-box',
-    marginTop: 6,
-    padding: '11px 12px',
-    borderRadius: 9,
+  pinBox: {
+    width: 52,
+    height: 62,
+    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: 700,
+    color: '#3f6b4a',
     border: '1px solid #cdddc6',
-    fontSize: 15,
+    borderRadius: 12,
+    background: '#f7faf5',
     outlineColor: '#5a7d5a',
   },
+  pinBoxFilled: {
+    background: '#fff',
+    borderColor: '#5a7d5a',
+    boxShadow: '0 0 0 3px rgba(90, 125, 90, 0.15)',
+  },
   error: {
-    margin: '0 0 12px',
+    margin: '18px 0 0',
     color: '#b23b3b',
     fontSize: 13,
     background: '#fbeaea',
     padding: '8px 10px',
     borderRadius: 8,
   },
-  button: {
-    width: '100%',
-    padding: '12px',
-    borderRadius: 10,
-    border: 'none',
-    background: '#4f7a5b',
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: 4,
-  },
+  checking: { margin: '16px 0 0', color: '#6b7d6b', fontSize: 13 },
 };

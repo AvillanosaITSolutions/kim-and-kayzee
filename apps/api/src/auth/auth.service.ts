@@ -15,21 +15,46 @@ function safeEqual(a: string, b: string): boolean {
 export class AuthService {
   private readonly cfg = getAuthConfig();
 
+  // Per-IP throttle so a 4-digit PIN (10k combos) can't be brute-forced.
+  private readonly attempts = new Map<
+    string,
+    { fails: number; lockedUntil: number }
+  >();
+  private static readonly MAX_FAILS = 8;
+  private static readonly LOCK_MS = 60_000;
+
   get cookieName(): string {
     return this.cfg.cookieName;
   }
 
-  /** True only if credentials match and a password is actually configured. */
-  validateCredentials(username: string, password: string): boolean {
-    if (!this.cfg.password) return false; // fail closed when unconfigured
-    return (
-      safeEqual(username ?? '', this.cfg.username) &&
-      safeEqual(password ?? '', this.cfg.password)
-    );
+  /** True only if the PIN matches and a PIN is actually configured. */
+  validatePin(pin: string): boolean {
+    if (!this.cfg.pin) return false; // fail closed when unconfigured
+    return safeEqual(pin ?? '', this.cfg.pin);
   }
 
-  issueToken(username: string): string {
-    return issueToken(username, this.cfg.secret, this.cfg.ttlSeconds);
+  /** Milliseconds remaining on a lockout for this IP, or 0 if not locked. */
+  lockRemainingMs(ip: string): number {
+    const a = this.attempts.get(ip);
+    return a && a.lockedUntil > Date.now() ? a.lockedUntil - Date.now() : 0;
+  }
+
+  recordFail(ip: string): void {
+    const a = this.attempts.get(ip) ?? { fails: 0, lockedUntil: 0 };
+    a.fails += 1;
+    if (a.fails >= AuthService.MAX_FAILS) {
+      a.lockedUntil = Date.now() + AuthService.LOCK_MS;
+      a.fails = 0;
+    }
+    this.attempts.set(ip, a);
+  }
+
+  recordSuccess(ip: string): void {
+    this.attempts.delete(ip);
+  }
+
+  issueToken(): string {
+    return issueToken(this.cfg.username, this.cfg.secret, this.cfg.ttlSeconds);
   }
 
   /** Returns the username for a valid session cookie, or null. */

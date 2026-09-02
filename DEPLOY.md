@@ -83,11 +83,10 @@ POSTGRES_USER=wedding
 POSTGRES_PASSWORD=<strong-random>
 POSTGRES_DB=wedding
 
-# Admin dashboard login (the public /i/<slug> invites need none). Without
-# ADMIN_PASSWORD the login is DISABLED (fail closed). AUTH_SECRET signs the
-# session cookie — `openssl rand -hex 32`, keep it stable across deploys.
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=<pick-a-password>
+# Admin dashboard login (the public /i/<slug> invites need none). ADMIN_PIN is a
+# 4-digit PIN; without it the login is DISABLED (fail closed). AUTH_SECRET signs
+# the session cookie — `openssl rand -hex 32`, keep it stable across deploys.
+ADMIN_PIN=<4 digits>
 AUTH_SECRET=<openssl rand -hex 32>
 
 # KK_HOST defaults to kim-and-kayzee.com in the deploy; set it here only to

@@ -6,20 +6,19 @@ import {
   Req,
   Res,
   HttpCode,
+  HttpException,
+  HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { IsString } from 'class-validator';
+import { Matches } from 'class-validator';
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
 import { parseCookies } from './auth.guard';
 
 class LoginDto {
-  @IsString()
-  username!: string;
-
-  @IsString()
-  password!: string;
+  @Matches(/^\d{4}$/, { message: 'PIN must be 4 digits' })
+  pin!: string;
 }
 
 @Controller('auth')
@@ -31,14 +30,25 @@ export class AuthController {
   @HttpCode(200)
   login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): { username: string } {
-    if (!this.auth.validateCredentials(dto.username, dto.password)) {
-      throw new UnauthorizedException('Invalid username or password');
+  ): { ok: true } {
+    const ip = req.ip ?? 'unknown';
+    const wait = this.auth.lockRemainingMs(ip);
+    if (wait > 0) {
+      throw new HttpException(
+        `Too many attempts. Try again in ${Math.ceil(wait / 1000)}s.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
-    const token = this.auth.issueToken(dto.username);
+    if (!this.auth.validatePin(dto.pin)) {
+      this.auth.recordFail(ip);
+      throw new UnauthorizedException('Incorrect PIN');
+    }
+    this.auth.recordSuccess(ip);
+    const token = this.auth.issueToken();
     res.cookie(this.auth.cookieName, token, this.auth.cookieOptions(this.auth.ttlMs));
-    return { username: dto.username };
+    return { ok: true };
   }
 
   @Public()
