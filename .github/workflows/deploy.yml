@@ -111,23 +111,15 @@ jobs:
           COMPOSE_FILES="-f docker-compose.yml -f docker-compose.release.yml"
 
           # --- HTTPS front door -------------------------------------------------
-          # KK_HOST is OPTIONAL. With nothing set, the hostname is derived from this
-          # box's public IP via sslip.io (which resolves <name>.<dashed-ip>.sslip.io
-          # back to <ip>) — using a "kim." prefix so it is a DISTINCT name from the
-          # auto-checkout-bot back office that shares this Traefik. Set KK_HOST in the
-          # .env to use a domain you own instead.
+          # The site's own domain. Overridable from the .env (PROD_DOTENV secret) via
+          # KK_HOST, but it defaults to kim-and-kayzee.com so no secret edit is needed.
+          # docker-compose.tls.yml routes both the apex and www.<domain> to the app.
           #
           # Read line-by-line rather than sourcing .env (which holds a password with
           # characters the shell would interpret). [:space:] strips a stray Windows
           # carriage return that would otherwise hide inside the Host() rule.
           KK_HOST=$(grep -m1 '^KK_HOST=' .env | cut -d= -f2- | tr -d '"' | tr -d '[:space:]' || true)
-          if [ -z "$KK_HOST" ]; then
-            PUBLIC_IP=$(curl -fsS --max-time 15 https://api.ipify.org || true)
-            if [ -n "$PUBLIC_IP" ]; then
-              KK_HOST="kim.$(printf '%s' "$PUBLIC_IP" | tr '.' '-').sslip.io"
-              echo "No KK_HOST set — using the derived hostname ${KK_HOST}"
-            fi
-          fi
+          [ -n "$KK_HOST" ] || KK_HOST="kim-and-kayzee.com"
 
           # ACME account contact, also optional. Traefik refuses to start with an
           # empty email flag, so an empty value must become a valid one. Let's Encrypt

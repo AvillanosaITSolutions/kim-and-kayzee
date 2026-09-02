@@ -13,7 +13,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=edge"
-      - "traefik.http.routers.kk.rule=Host(`${KK_HOST}`)"
+      - "traefik.http.routers.kk.rule=Host(`${KK_HOST}`) || Host(`www.${KK_HOST}`)"
       - "traefik.http.routers.kk.entrypoints=websecure"
       - "traefik.http.routers.kk.tls=true"
       - "traefik.http.routers.kk.tls.certresolver=le"
