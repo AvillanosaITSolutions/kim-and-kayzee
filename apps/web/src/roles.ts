@@ -26,6 +26,20 @@ export function roleFor(guestType: string): RoleInfo | null {
     return { label: 'Principal Sponsor · Ninong', icon: '🍷' };
   if (t.includes('ninang'))
     return { label: 'Principal Sponsor · Ninang', icon: '🎀' };
+  if (t.includes('candle'))
+    return { label: 'Secondary Sponsor · Candle', icon: '🕯️' };
+  if (t.includes('veil'))
+    return { label: 'Secondary Sponsor · Veil', icon: '🤍' };
+  if (t.includes('cord'))
+    return { label: 'Secondary Sponsor · Cord', icon: '🪢' };
+  if (t.includes('bible bearer'))
+    return { label: 'Bible Bearer', icon: '📖' };
+  if (t.includes('ring bearer'))
+    return { label: 'Ring Bearer', icon: '💍' };
+  if (t.includes('coin bearer'))
+    return { label: 'Coin Bearer · Arrhae', icon: '🪙' };
+  if (t.includes('flower girl'))
+    return { label: 'Flower Girl', icon: '🌸' };
   if (t.includes('extended family'))
     return { label: 'Cherished Family', icon: '💚' };
   if (t.includes('family member'))
