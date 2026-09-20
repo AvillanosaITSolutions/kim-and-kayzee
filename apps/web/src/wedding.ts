@@ -31,11 +31,16 @@ export const WEDDING = {
   attire: {
     main: 'Formal / Semi-formal — in shades of green',
     // Colors we'd love guests to wear.
-    wear: [
-      { name: 'Sage', hex: '#8aa06f' },
-      { name: 'Pastel green', hex: '#cfe6d4' },
-      { name: 'Mint', hex: '#a8d5b5' },
-    ],
+  wear: [
+    { name: 'Sage', hex: '#8aa06f' },
+    { name: 'Pastel green', hex: '#cfe6d4' },
+    { name: 'Mint', hex: '#a8d5b5' },
+    { name: 'Lime', hex: '#00ff00' },
+    { name: 'Apple green', hex: '#8db600' },
+    { name: 'Emerald green', hex: '#50c878' },
+    { name: 'Teal', hex: '#008080' },
+    { name: 'Army green', hex: '#454b1b' },
+  ],
     // Reserved for the bride — kindly avoid.
     avoid: [
       { name: 'White', hex: '#ffffff' },
@@ -49,8 +54,6 @@ export const WEDDING = {
   adultsOnly: {
     title: 'An Adults’ Celebration',
     body: "With love, we've planned our wedding as an adults-only celebration — a relaxed evening for you to unwind, dance, and simply enjoy, free from the hassle of babysitting.",
-    exception:
-      'A few little ones from our immediate family are the cherished exception, and are warmly welcome.',
     closing:
       'Thank you so much for understanding — consider it our treat: a well-deserved night off. We can’t wait to celebrate with you!',
   },

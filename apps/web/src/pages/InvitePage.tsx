@@ -364,9 +364,9 @@ export default function InvitePage() {
             <p className="dear-body" style={{ margin: '2px auto 0' }}>
               {WEDDING.adultsOnly.body}
             </p>
-            <p className="dear-note" style={{ marginTop: 14 }}>
+            {/* <p className="dear-note" style={{ marginTop: 14 }}>
               {WEDDING.adultsOnly.exception}
-            </p>
+            </p> */}
             <p className="dear-body" style={{ margin: '14px auto 0' }}>
               {WEDDING.adultsOnly.closing}
             </p>
@@ -400,9 +400,8 @@ export default function InvitePage() {
               return (
                 <div
                   key={m.id}
-                  className={`rsvp-guest ${
-                    choice === 'Pending' ? 'needs-answer' : ''
-                  }`}
+                  className={`rsvp-guest ${choice === 'Pending' ? 'needs-answer' : ''
+                    }`}
                 >
                   <span className="rsvp-guest-name">
                     {guestName(m)}
@@ -412,17 +411,15 @@ export default function InvitePage() {
                   </span>
                   <div className="rsvp-choices">
                     <button
-                      className={`choice ${
-                        choice === 'Attending' ? 'choice-yes' : ''
-                      }`}
+                      className={`choice ${choice === 'Attending' ? 'choice-yes' : ''
+                        }`}
                       onClick={() => setChoice(m.id, 'Attending')}
                     >
                       Joyfully accepts
                     </button>
                     <button
-                      className={`choice ${
-                        choice === 'Declined' ? 'choice-no' : ''
-                      }`}
+                      className={`choice ${choice === 'Declined' ? 'choice-no' : ''
+                        }`}
                       onClick={() => setChoice(m.id, 'Declined')}
                     >
                       Regretfully declines
@@ -443,9 +440,8 @@ export default function InvitePage() {
           {error && <p className="invite-error">{error}</p>}
 
           <button
-            className={`btn-send ${canSend ? 'pulse' : ''} ${
-              justConfirmed ? 'sent' : ''
-            }`}
+            className={`btn-send ${canSend ? 'pulse' : ''} ${justConfirmed ? 'sent' : ''
+              }`}
             onClick={send}
             disabled={!canSend}
           >
