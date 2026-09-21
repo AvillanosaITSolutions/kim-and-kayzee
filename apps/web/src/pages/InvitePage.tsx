@@ -13,7 +13,7 @@ import { api } from '../api';
 import type { Guest, Invitation, RsvpStatus } from '../types';
 import { WEDDING } from '../wedding';
 import { roleFor } from '../roles';
-import coupleBadge from '../assets/couple.png';
+import coupleBadge from '../assets/wedding.png';
 
 function guestName(g: Guest) {
   return `${g.firstName} ${g.lastName}`.trim() || g.nameOnInvitation || g.id;
