@@ -40,6 +40,14 @@ function FacebookIcon() {
   );
 }
 
+function MessengerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.19.16.14.26.35.27.57l.05 1.78c.02.57.6.94 1.12.71l1.99-.88a.87.87 0 0 1 .58-.04c.91.25 1.88.38 2.78.38 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm6 7.46-2.93 4.64c-.47.74-1.47.92-2.16.4l-2.33-1.75a.6.6 0 0 0-.72 0l-3.14 2.39c-.42.32-.97-.18-.69-.63l2.93-4.64c.47-.74 1.47-.92 2.16-.4l2.33 1.75c.21.16.51.16.72 0l3.14-2.38c.42-.32.97.18.69.62z" />
+    </svg>
+  );
+}
+
 interface BookPage {
   key: string;
   cls?: string;
@@ -65,6 +73,7 @@ export default function InvitePage() {
   const [saving, setSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   // Envelope "tap to open" animation. Respect reduced-motion by skipping it.
   const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>(() =>
@@ -166,6 +175,47 @@ export default function InvitePage() {
   }, [invitation, canSend, choices]);
 
   const justConfirmed = hasSaved && !dirty;
+
+  // A ready-to-send caption for forwarding this invitation over Messenger.
+  const shareCaption = useMemo(() => {
+    const who = invitation?.addressLabel
+      ? `Dear ${invitation.addressLabel}, `
+      : '';
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    return (
+      `💚 ${who}you're warmly invited to the wedding of ` +
+      `${WEDDING.groom} & ${WEDDING.bride}! 💚\n\n` +
+      `📅 ${WEDDING.dayLabel}, ${WEDDING.dateLabel}\n` +
+      `📍 ${WEDDING.venueName}\n\n` +
+      `Tap to open your personal invitation and RSVP:\n${url}`
+    );
+  }, [invitation]);
+
+  const shareToMessenger = useCallback(async () => {
+    const url = window.location.href;
+    setShareNote(null);
+    // Native share sheet (mobile) — lists Messenger and carries the caption.
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${WEDDING.groom} & ${WEDDING.bride} — You're Invited`,
+          text: shareCaption,
+          url,
+        });
+        return;
+      } catch {
+        // Cancelled or unsupported — fall through to the copy fallback.
+      }
+    }
+    // Desktop fallback: copy the caption + link, then open Messenger to paste.
+    try {
+      await navigator.clipboard.writeText(shareCaption);
+      setShareNote('✓ Caption copied! Opening Messenger — just paste it into the chat.');
+    } catch {
+      setShareNote('Copy this and send it in Messenger:\n\n' + shareCaption);
+    }
+    window.open('https://www.messenger.com/', '_blank', 'noopener,noreferrer');
+  }, [shareCaption]);
 
   const sendLabel = useMemo(() => {
     if (saving) return 'Sending…';
@@ -355,6 +405,35 @@ export default function InvitePage() {
     });
 
     pages.push({
+      key: 'gifts',
+      content: (
+        <>
+          <p className="ornament">❦</p>
+          <h3 className="page-title">{WEDDING.gifts.title}</h3>
+          <div className="gifts">
+            <p className="dear-body" style={{ margin: '2px auto 0' }}>
+              {WEDDING.gifts.body}
+            </p>
+            <p className="gifts-ideas-intro">{WEDDING.gifts.ideasIntro}</p>
+            <ul className="gifts-list">
+              {WEDDING.gifts.ideas.map((idea) => (
+                <li key={idea} className="gift-item">
+                  <span className="gift-bullet" aria-hidden="true">
+                    ✿
+                  </span>
+                  {idea}
+                </li>
+              ))}
+            </ul>
+            <p className="dear-note" style={{ marginTop: 12 }}>
+              {WEDDING.gifts.closing}
+            </p>
+          </div>
+        </>
+      ),
+    });
+
+    pages.push({
       key: 'note',
       content: (
         <>
@@ -384,6 +463,12 @@ export default function InvitePage() {
             Tap a response for {total === 1 ? 'yourself' : 'each guest'}, then
             press <strong>Send RSVP</strong> to confirm.
           </p>
+
+          {WEDDING.rsvpBy && (
+            <p className="rsvp-deadline">
+              💌 Kindly accept your RSVP by <strong>{WEDDING.rsvpBy}</strong>.
+            </p>
+          )}
 
           <div
             className={`rsvp-progress ${allAnswered ? 'done' : ''}`}
@@ -472,6 +557,15 @@ export default function InvitePage() {
           <p className="detail-sub">
             {WEDDING.venueName} · {WEDDING.dateLabel}
           </p>
+          <button
+            className="btn-messenger"
+            onClick={shareToMessenger}
+            type="button"
+          >
+            <MessengerIcon />
+            Share to Messenger
+          </button>
+          {shareNote && <p className="share-note">{shareNote}</p>}
         </>
       ),
     });
@@ -671,9 +765,7 @@ export default function InvitePage() {
             </div>
             <div className="env-front" />
             <div className="env-flap" />
-            <div className="env-seal">
-              {WEDDING.groom[0]}&amp;{WEDDING.bride[0]}
-            </div>
+            <div className="env-seal" aria-hidden="true" />
           </div>
           <p className="open-hint">Tap to open your invitation</p>
         </div>

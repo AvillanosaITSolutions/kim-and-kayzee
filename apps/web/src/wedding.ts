@@ -16,6 +16,9 @@ export const WEDDING = {
   ceremonyTime: '',
   receptionNote: 'Reception to follow',
 
+  // Kindly RSVP by this date (shown on the RSVP page).
+  rsvpBy: 'October 31, 2026',
+
   // Venue.
   venueName: 'Ligaya Villas',
   venueAddress:
@@ -39,7 +42,6 @@ export const WEDDING = {
     { name: 'Apple green', hex: '#8db600' },
     { name: 'Emerald green', hex: '#50c878' },
     { name: 'Teal', hex: '#008080' },
-    { name: 'Army green', hex: '#454b1b' },
   ],
     // Reserved for the bride — kindly avoid.
     avoid: [
@@ -48,6 +50,22 @@ export const WEDDING = {
       { name: 'Ivory', hex: '#fffdf0' },
     ],
     avoidNote: 'these shades are reserved for the bride alone',
+  },
+
+  // Gifts note. We warmly prefer the gift of cash (a "money dance" / monetary
+  // gift), but list a few ideas for those who'd rather bring something.
+  gifts: {
+    title: 'The Gift of Your Presence',
+    body: 'Your love and presence on our special day are truly the greatest gift of all. Should you wish to bless us further as we begin our life together, a gift of cash — to help us build our future home and dreams — would be warmly and gratefully received.',
+    ideasIntro: 'If you would prefer to give a physical gift, here are a few ideas:',
+    ideas: [
+      'Kitchen & dining sets',
+      'Home appliances',
+      'Bed & bath essentials',
+      'Home décor in sage / green tones',
+      'Gift cards / vouchers',
+    ],
+    closing: 'Whatever you choose, please know your thoughtfulness means the world to us. 💚',
   },
 
   // A gentle note that the celebration is adults-focused. ✏️ Edit freely.

@@ -19,6 +19,9 @@
   --bad: #b04a4a;
   --shadow: 0 10px 30px rgba(70, 90, 70, 0.12);
   --radius: 14px;
+  /* E-invite typography: an elegant serif for body, calligraphy for names. */
+  --font-serif: 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  --font-script: 'Great Vibes', 'Segoe Script', 'Georgia', cursive;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--ink);
 }
@@ -1865,4 +1868,121 @@ tbody tr:last-child td {
   .swatches {
     gap: 12px;
   }
+}
+
+/* ============================================================
+   E-invite typography — elegant serif body + calligraphy names.
+   Scoped to .invite-page so the admin dashboard is untouched.
+   ============================================================ */
+.invite-page,
+.invite-page * {
+  font-family: var(--font-serif);
+}
+.invite-page {
+  font-weight: 500;
+}
+.invite-page h1,
+.invite-page h2,
+.invite-page h3,
+.invite-page .page-title {
+  font-weight: 600;
+}
+/* Flowing calligraphy for the couple's names. */
+.invite-page .script,
+.invite-page .env-mono,
+.invite-page .open-names {
+  font-family: var(--font-script);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.invite-page .script {
+  font-size: clamp(42px, 12vw, 64px);
+  line-height: 1.15;
+}
+.invite-page .open-names {
+  font-size: clamp(40px, 11vw, 52px);
+  line-height: 1.1;
+}
+.invite-page .env-mono {
+  font-size: 30px;
+}
+
+/* ---- Gifts page ---- */
+.gifts {
+  text-align: center;
+}
+.gifts-ideas-intro {
+  margin: 18px auto 8px;
+  font-size: 15px;
+  color: var(--muted);
+  font-style: italic;
+}
+.gifts-list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.gift-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: var(--ink);
+  padding-left: 6px;
+}
+.gift-bullet {
+  color: var(--gold);
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+
+/* ---- RSVP-by deadline ---- */
+.rsvp-deadline {
+  margin: 4px auto 14px;
+  padding: 8px 14px;
+  background: var(--sage-soft);
+  border: 1px dashed var(--sage);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--sage-deep);
+  max-width: 340px;
+}
+
+/* ---- Share to Messenger ---- */
+.btn-messenger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px auto 0;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0a7cff 0%, #a033ff 60%, #ff5280 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(80, 60, 200, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-messenger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 20px rgba(80, 60, 200, 0.34);
+}
+.btn-messenger svg {
+  width: 20px;
+  height: 20px;
+}
+.share-note {
+  margin: 12px auto 0;
+  max-width: 320px;
+  font-size: 13px;
+  color: var(--sage-deep);
+  white-space: pre-wrap;
+  line-height: 1.5;
 }

@@ -134,6 +134,11 @@ const rows: Row[] = [
   ['G-0100', '', 'Nene Andao', 'Aisil', 'Andao', '🥉Extended family member', '', 'Bride', false],
   ['G-0101', '', 'Ate Minerva', 'Ate Minerva', '', 'Regular Guest', '', 'Bride', false],
   ['G-0102', '', 'Tim Marapao', 'Tim', 'Marapao', '🥈 Friends', '', 'Groom', false],
+  // Added 2026-09-21. Extended family, invited by the groom.
+  ['G-0106', '', 'Ate Ana', 'Ana', '', '🥉Extended family member', '', 'Groom', false],
+  ['G-0107', '', 'Ate Ritchelle', 'Ritchelle', 'Rebleza Gomez', '🥉Extended family member', '', 'Groom', false],
+  ['G-0108', '', '', 'Renalyn', 'Cauntao', '🥉Extended family member', '', 'Groom', false],
+  ['G-0109', '', '', 'Claire', 'Detera', '🥉Extended family member', '', 'Groom', false],
 ];
 
 export const seedGuests: SeedGuest[] = rows.map(
