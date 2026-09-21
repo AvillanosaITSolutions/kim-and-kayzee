@@ -13,7 +13,14 @@ import { api } from '../api';
 import type { Guest, Invitation, RsvpStatus } from '../types';
 import { WEDDING } from '../wedding';
 import { roleFor } from '../roles';
-import coupleBadge from '../assets/wedding.png';
+
+// Every image in src/assets is a badge candidate; one is picked at random on
+// each load (see `badgeImage` below), so reloading shows a different one.
+const BADGE_MODULES = import.meta.glob<string>(
+  '../assets/*.{png,jpg,jpeg,svg,webp}',
+  { eager: true, import: 'default' },
+);
+const BADGE_IMAGES = Object.values(BADGE_MODULES);
 
 function guestName(g: Guest) {
   return `${g.firstName} ${g.lastName}`.trim() || g.nameOnInvitation || g.id;
@@ -76,6 +83,12 @@ export default function InvitePage() {
   const [idx, setIdx] = useState(0);
   const [turn, setTurn] = useState<Turn>(null);
   const touchRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Pick a badge image once per load; reloading re-mounts and re-rolls it.
+  const badgeImage = useMemo(
+    () => BADGE_IMAGES[Math.floor(Math.random() * BADGE_IMAGES.length)],
+    [],
+  );
 
   useEffect(() => {
     document.title = `${WEDDING.groom} & ${WEDDING.bride} — You're Invited`;
@@ -198,7 +211,7 @@ export default function InvitePage() {
           <p className="eyebrow gold">You are cordially invited</p>
           <div className="couple-badge">
             <img
-              src={coupleBadge}
+              src={badgeImage}
               alt={`${WEDDING.groom} and ${WEDDING.bride}`}
             />
           </div>

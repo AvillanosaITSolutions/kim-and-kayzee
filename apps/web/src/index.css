@@ -2054,18 +2054,25 @@ tbody tr:last-child td {
   color: var(--ink);
 }
 
-/* Couple illustration used as the cover's wedding badge. A gold-ringed
-   medallion, tying into the gilt accents elsewhere on the invite. */
+/* A random image from src/assets used as the cover's wedding badge. A gold-
+   ringed medallion, with a sage duotone so any artwork — colour illustration
+   or black line-art — resolves to the invite's green/gold accents. */
 .couple-badge {
+  position: relative;
   width: 118px;
   height: 118px;
   margin: 4px auto 0;
   border-radius: 50%;
   overflow: hidden;
-  background: #fff;
+  background: radial-gradient(
+    circle at 50% 40%,
+    var(--sage-soft) 0%,
+    #eef4ea 65%,
+    #e3ecdc 100%
+  );
   border: 3px solid var(--gold);
   box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.18),
+    0 6px 16px rgba(0, 0, 0, 0.16),
     0 0 0 6px rgba(169, 134, 60, 0.12);
 }
 .couple-badge img {
@@ -2073,6 +2080,21 @@ tbody tr:last-child td {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Flatten each image's own palette so the sage tint reads cleanly. */
+  filter: grayscale(1) contrast(1.03) brightness(1.03);
+}
+/* Sage wash (shadows → deep green) + faint gold warmth = a cohesive duotone. */
+.couple-badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(125, 154, 114, 0.5) 0%,
+    rgba(91, 116, 82, 0.62) 100%
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
 /* ---- Gifts page ---- */
