@@ -13,6 +13,7 @@ import { api } from '../api';
 import type { Guest, Invitation, RsvpStatus } from '../types';
 import { WEDDING } from '../wedding';
 import { roleFor } from '../roles';
+import coupleBadge from '../assets/couple.png';
 
 function guestName(g: Guest) {
   return `${g.firstName} ${g.lastName}`.trim() || g.nameOnInvitation || g.id;
@@ -195,10 +196,11 @@ export default function InvitePage() {
       content: (
         <>
           <p className="eyebrow gold">You are cordially invited</p>
-          <div className="monogram">
-            {WEDDING.groom[0]}
-            <span className="amp">&amp;</span>
-            {WEDDING.bride[0]}
+          <div className="couple-badge">
+            <img
+              src={coupleBadge}
+              alt={`${WEDDING.groom} and ${WEDDING.bride}`}
+            />
           </div>
           <h1 className="script" style={{ marginTop: 14 }}>
             {WEDDING.groom} <span className="amp">&amp;</span> {WEDDING.bride}
@@ -361,21 +363,13 @@ export default function InvitePage() {
           <p className="ornament">❦</p>
           <h3 className="page-title">{WEDDING.gifts.title}</h3>
           <div className="gifts">
-            <p className="dear-body" style={{ margin: '2px auto 0' }}>
+            <p className="ornament" style={{ marginTop: 6 }}>
+              ✦ ❦ ✦
+            </p>
+            <p className="dear-body" style={{ margin: '6px auto 0' }}>
               {WEDDING.gifts.body}
             </p>
-            <p className="gifts-ideas-intro">{WEDDING.gifts.ideasIntro}</p>
-            <ul className="gifts-list">
-              {WEDDING.gifts.ideas.map((idea) => (
-                <li key={idea} className="gift-item">
-                  <span className="gift-bullet" aria-hidden="true">
-                    ✿
-                  </span>
-                  {idea}
-                </li>
-              ))}
-            </ul>
-            <p className="dear-note" style={{ marginTop: 12 }}>
+            <p className="dear-note" style={{ marginTop: 16 }}>
               {WEDDING.gifts.closing}
             </p>
           </div>

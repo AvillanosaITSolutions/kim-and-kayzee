@@ -1704,6 +1704,11 @@ tbody tr:last-child td {
     linear-gradient(115deg, #fffdf7 0%, #fbf6ea 100%);
   padding: 34px 30px 46px 36px;
   text-align: center;
+  /* Vertically centre the content; `safe` keeps the top reachable (no clipping)
+     when a page's content is taller than the book. */
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
 }
 .page::before {
   content: '';
@@ -1989,13 +1994,13 @@ tbody tr:last-child td {
   font-family: var(--font-serif);
 }
 .invite-page {
-  font-weight: 500;
+  font-weight: 600;
 }
 .invite-page h1,
 .invite-page h2,
 .invite-page h3,
 .invite-page .page-title {
-  font-weight: 600;
+  font-weight: 700;
 }
 /* Flowing calligraphy for the couple's names. */
 .invite-page .script,
@@ -2018,38 +2023,63 @@ tbody tr:last-child td {
   font-size: 30px;
 }
 
+/* A distinct ornamental ampersand — gold serif italic, set apart from the
+   script names so it reads as a deliberate connector, not part of the name. */
+.invite-page .script .amp,
+.invite-page .open-names .amp,
+.invite-page .env-mono .amp {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 0.82em;
+  color: var(--gold);
+  padding: 0 0.06em;
+}
+
+/* Darker, stronger invite text for crisp readability on the cream paper. */
+.invite-page .eyebrow {
+  color: var(--sage-deep);
+}
+.invite-page .invite-line,
+.invite-page .dear-body,
+.invite-page .dear-to,
+.invite-page .rsvp-sub,
+.invite-page .detail-value,
+.invite-page .detail-sub,
+.invite-page .roles-intro,
+.invite-page .attire-main {
+  color: var(--ink);
+}
+.invite-page .page-title {
+  color: var(--ink);
+}
+
+/* Couple illustration used as the cover's wedding badge. A gold-ringed
+   medallion, tying into the gilt accents elsewhere on the invite. */
+.couple-badge {
+  width: 118px;
+  height: 118px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  border: 3px solid var(--gold);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.18),
+    0 0 0 6px rgba(169, 134, 60, 0.12);
+}
+.couple-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* ---- Gifts page ---- */
 .gifts {
   text-align: center;
-}
-.gifts-ideas-intro {
-  margin: 18px auto 8px;
-  font-size: 15px;
-  color: var(--muted);
-  font-style: italic;
-}
-.gifts-list {
-  list-style: none;
+  max-width: 440px;
   margin: 0 auto;
-  padding: 0;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-}
-.gift-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  color: var(--ink);
-  padding-left: 6px;
-}
-.gift-bullet {
-  color: var(--gold);
-  font-size: 14px;
-  flex: 0 0 auto;
 }
 
 /* ---- RSVP-by deadline ---- */

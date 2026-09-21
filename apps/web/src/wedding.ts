@@ -52,20 +52,11 @@ export const WEDDING = {
     avoidNote: 'these shades are reserved for the bride alone',
   },
 
-  // Gifts note. We warmly prefer the gift of cash (a "money dance" / monetary
-  // gift), but list a few ideas for those who'd rather bring something.
+  // Gifts note. We warmly prefer the gift of cash — framed gently and graciously.
   gifts: {
     title: 'The Gift of Your Presence',
-    body: 'Your love and presence on our special day are truly the greatest gift of all. Should you wish to bless us further as we begin our life together, a gift of cash — to help us build our future home and dreams — would be warmly and gratefully received.',
-    ideasIntro: 'If you would prefer to give a physical gift, here are a few ideas:',
-    ideas: [
-      'Kitchen & dining sets',
-      'Home appliances',
-      'Bed & bath essentials',
-      'Home décor in sage / green tones',
-      'Gift cards / vouchers',
-    ],
-    closing: 'Whatever you choose, please know your thoughtfulness means the world to us. 💚',
+    body: 'Your presence on our special day is truly the greatest gift we could ask for. Should you wish to bless us a little further, we would be ever so grateful for the gift of cash — a small help as we build our first home and begin this new chapter together.',
+    closing: 'Whatever you choose, your love and generosity mean the world to us. 💚',
   },
 
   // A gentle note that the celebration is adults-focused. ✏️ Edit freely.
