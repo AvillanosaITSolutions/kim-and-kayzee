@@ -1,4 +1,5 @@
 import type { GuestFilters } from '../types';
+import CategoryFilter from './CategoryFilter';
 
 interface Props {
   filters: GuestFilters;
@@ -34,17 +35,11 @@ export default function Toolbar({
         <option value="Bride">Bride's side</option>
       </select>
 
-      <select
-        value={filters.guestType ?? ''}
-        onChange={(e) => set({ guestType: e.target.value })}
-      >
-        <option value="">All categories</option>
-        {guestTypes.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
+      <CategoryFilter
+        options={guestTypes}
+        selected={filters.guestType ?? []}
+        onChange={(next) => set({ guestType: next })}
+      />
 
       <select
         value={filters.rsvpStatus ?? ''}

@@ -47,7 +47,8 @@ export interface GuestStats {
 export interface GuestFilters {
   search?: string;
   invitedBy?: InvitedBy | '';
-  guestType?: string;
+  /** One or more categories to include (OR). Empty/omitted means all. */
+  guestType?: string[];
   priority?: string;
   rsvpStatus?: RsvpStatus | '';
   hasInvite?: 'true' | 'false' | '';

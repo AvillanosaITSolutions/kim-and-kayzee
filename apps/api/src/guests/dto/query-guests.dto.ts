@@ -1,4 +1,5 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
 import type { InvitedBy, RsvpStatus } from '../guest.entity';
 
 /** Filters accepted by GET /guests as query-string params. */
@@ -12,9 +13,21 @@ export class QueryGuestsDto {
   @IsIn(['Groom', 'Bride'])
   invitedBy?: InvitedBy;
 
+  /**
+   * One or more categories to include (matched as OR). Sent as repeated
+   * `guestType` query params; a single value is normalised to a one-item array.
+   */
   @IsOptional()
-  @IsString()
-  guestType?: string;
+  @Transform(({ value }) =>
+    value === undefined || value === '' || value === null
+      ? undefined
+      : Array.isArray(value)
+        ? value
+        : [value],
+  )
+  @IsArray()
+  @IsString({ each: true })
+  guestType?: string[];
 
   @IsOptional()
   @IsString()

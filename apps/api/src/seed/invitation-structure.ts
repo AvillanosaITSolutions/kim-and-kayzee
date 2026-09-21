@@ -44,7 +44,7 @@ export const invitationStructure: InvitationRow[] = [
   { address: '', tags: ['G-0037-💼 Previous Colleagues-Andrew_Francisco'] },
   { address: '', tags: ['G-0039-💼 Previous Colleagues-Nico_Aplino'] },
   { address: '', tags: ['G-0040-💼 Previous Colleagues-Wendell_Saac'] },
-  { address: 'Tony', tags: ['G-0041-🥉Extended family member-Virginia_Avillanosa', 'G-0049-🥉Extended family member-Walton Karl_Avillanosa', 'G-0106-🥉Extended family member-Ana_'] },
+  { address: 'Tony', tags: ['G-0041-🥉Extended family member-Virginia_Avillanosa', 'G-0049-🥉Extended family member-Walton Karl_Avillanosa'] },
   { address: 'Atty. Walter Avillanosa and Atty. Iris Avillanosa', tags: ['G-0042-🥉Extended family member-Walter_Avillanosa', 'G-0043-🥉Extended family member-Iris_Avillanosa'] },
   { address: 'Atty. Alex Rivera', tags: ['G-0050-🥉Extended family member-Alexander_Rivera'] },
   { address: '', tags: ['G-0051-🥉Extended family member-Jackie_Rivera-Pastrana', 'G-0052-🥉Extended family member-Jonie_Pastrana'] },
@@ -82,8 +82,6 @@ export const invitationStructure: InvitationRow[] = [
   { address: 'Jake Andao, Nene Andao and Ate Quenie', tags: ['G-0098-🥉Extended family member-Jake Andao_', 'G-0100-🥉Extended family member-Nene Andao_', 'G-0099-🥉Extended family member-Ate Quenie_'] },
   { address: 'Ate dalin and Kuya Dambok', tags: ['G-0093-🥉Extended family member-Ate dalin_', 'G-0092-🥉Extended family member-Danvir_Quicho'] },
   { address: '', tags: ['G-0105-🥈 Friends-Tim_Marapao'] },
-  // Added 2026-09-21 — three extended family (groom's side) on one invitation.
-  { address: '', tags: ['G-0107-🥉Extended family member-Ritchelle_Rebleza Gomez', 'G-0108-🥉Extended family member-Renalyn_Cauntao', 'G-0109-🥉Extended family member-Claire_Detera'] },
 ];
 
 /** Parse a guest tag into its id and name parts. */

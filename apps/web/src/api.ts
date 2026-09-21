@@ -43,7 +43,12 @@ async function handle<T>(res: Response): Promise<T> {
 function toQuery(filters: GuestFilters): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value) params.set(key, value);
+    if (Array.isArray(value)) {
+      // Repeated params, e.g. ?guestType=A&guestType=B (parsed as an array).
+      for (const v of value) if (v) params.append(key, v);
+    } else if (value) {
+      params.set(key, value);
+    }
   }
   const qs = params.toString();
   return qs ? `?${qs}` : '';

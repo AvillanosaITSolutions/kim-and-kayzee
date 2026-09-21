@@ -38,8 +38,10 @@ export class GuestsService {
     if (query.invitedBy) {
       qb.andWhere('g.invitedBy = :invitedBy', { invitedBy: query.invitedBy });
     }
-    if (query.guestType) {
-      qb.andWhere('g.guestType = :guestType', { guestType: query.guestType });
+    if (query.guestType?.length) {
+      qb.andWhere('g.guestType IN (:...guestTypes)', {
+        guestTypes: query.guestType,
+      });
     }
     if (query.priority !== undefined) {
       qb.andWhere('g.priority = :priority', { priority: query.priority });
