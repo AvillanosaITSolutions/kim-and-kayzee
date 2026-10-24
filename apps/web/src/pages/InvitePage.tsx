@@ -245,8 +245,8 @@ export default function InvitePage() {
             Dear {invitation.addressLabel || joinNames(names)},
           </p>
           <p className="dear-body">
-            With joyful hearts, we invite you to share in our celebration of
-            love. Your presence would make our day complete.
+            We invite you to share in our celebration of love. Your presence
+            would make our day complete.
           </p>
           {invitation.message && (
             <p className="dear-note">“{invitation.message}”</p>

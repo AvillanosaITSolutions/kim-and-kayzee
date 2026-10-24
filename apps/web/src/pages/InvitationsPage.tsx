@@ -22,6 +22,32 @@ function rsvpDot(status: string) {
   return <span className={`dot ${cls}`} title={status} />;
 }
 
+function acceptSummary(inv: Invitation) {
+  const total = inv.members.length;
+  const accepted = inv.members.filter(
+    (m) => m.rsvpStatus === 'Attending',
+  ).length;
+  return { total, accepted };
+}
+
+function acceptBadge(inv: Invitation) {
+  const { total, accepted } = acceptSummary(inv);
+  if (total === 0) {
+    return <span className="accept-badge none">No guests</span>;
+  }
+  if (accepted === total) {
+    return <span className="accept-badge all">✓ All accepted</span>;
+  }
+  if (accepted > 0) {
+    return (
+      <span className="accept-badge some">
+        {accepted}/{total} accepted
+      </span>
+    );
+  }
+  return <span className="accept-badge none">Awaiting RSVP</span>;
+}
+
 export default function InvitationsPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [allGuests, setAllGuests] = useState<Guest[]>([]);
@@ -30,6 +56,7 @@ export default function InvitationsPage() {
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [search, setSearch] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -66,6 +93,31 @@ export default function InvitationsPage() {
     () => invitations.reduce((sum, i) => sum + i.members.length, 0),
     [invitations],
   );
+
+  const summary = useMemo(() => {
+    let attending = 0;
+    let declined = 0;
+    let pending = 0;
+    const acceptedByInvite: { inv: Invitation; members: Guest[] }[] = [];
+    for (const inv of invitations) {
+      const accepted: Guest[] = [];
+      for (const m of inv.members) {
+        if (m.rsvpStatus === 'Attending') {
+          attending++;
+          accepted.push(m);
+        } else if (m.rsvpStatus === 'Declined') {
+          declined++;
+        } else {
+          pending++;
+        }
+      }
+      if (accepted.length) acceptedByInvite.push({ inv, members: accepted });
+    }
+    const fullyAccepted = acceptedByInvite.filter(
+      (a) => a.members.length === a.inv.members.length,
+    ).length;
+    return { attending, declined, pending, acceptedByInvite, fullyAccepted };
+  }, [invitations]);
 
   async function handleSave(input: {
     addressLabel: string;
@@ -135,6 +187,72 @@ export default function InvitationsPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      {!loading && invitations.length > 0 && (
+        <div className="rsvp-summary">
+          <div className="summary-stats">
+            <div className="stat stat-ok">
+              <b>{summary.attending}</b>
+              <span>Accepted</span>
+            </div>
+            <div className="stat">
+              <b>{summary.pending}</b>
+              <span>Pending</span>
+            </div>
+            <div className="stat stat-bad">
+              <b>{summary.declined}</b>
+              <span>Declined</span>
+            </div>
+            <div className="stat">
+              <b>{summary.fullyAccepted}</b>
+              <span>Invites all-in</span>
+            </div>
+          </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowBreakdown((v) => !v)}
+            disabled={summary.attending === 0}
+          >
+            {showBreakdown ? 'Hide' : 'Show'} accepted breakdown
+          </button>
+        </div>
+      )}
+
+      {!loading && showBreakdown && (
+        <div className="breakdown-panel">
+          <div className="breakdown-head">
+            Accepted guests · {summary.attending} across{' '}
+            {summary.acceptedByInvite.length} invitation
+            {summary.acceptedByInvite.length === 1 ? '' : 's'}
+          </div>
+          {summary.acceptedByInvite.length === 0 ? (
+            <div className="empty">No guests have accepted yet.</div>
+          ) : (
+            <ul className="breakdown-list">
+              {summary.acceptedByInvite.map(({ inv, members }) => (
+                <li key={inv.id} className="breakdown-row">
+                  <div className="breakdown-row-head">
+                    <Link to={`/i/${inv.slug}`} className="breakdown-label">
+                      {inv.addressLabel || inv.id}
+                    </Link>
+                    <span className="breakdown-count">
+                      {members.length}/{inv.members.length}
+                    </span>
+                  </div>
+                  <div className="breakdown-guests">
+                    {members.map((m) => (
+                      <span key={m.id} className="member-chip">
+                        {rsvpDot(m.rsvpStatus)}
+                        {guestName(m)}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="loading">Loading invitations…</div>
       ) : (
@@ -150,6 +268,8 @@ export default function InvitationsPage() {
                 </div>
                 <span className="invite-count">{inv.members.length}</span>
               </div>
+
+              <div className="invite-status">{acceptBadge(inv)}</div>
 
               <div className="invite-members">
                 {inv.members.map((m) => (
