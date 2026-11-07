@@ -38,10 +38,8 @@ export const WEDDING = {
     { name: 'Sage', hex: '#8aa06f' },
     { name: 'Pastel green', hex: '#cfe6d4' },
     { name: 'Mint', hex: '#a8d5b5' },
-    { name: 'Lime', hex: '#00ff00' },
-    { name: 'Apple green', hex: '#8db600' },
     { name: 'Emerald green', hex: '#50c878' },
-    { name: 'Teal', hex: '#008080' },
+    { name: 'Olive Green', hex: '#808000' },
   ],
     // Reserved for the bride — kindly avoid.
     avoid: [
