@@ -17,7 +17,7 @@ export const WEDDING = {
   receptionNote: 'Reception to follow',
 
   // Kindly RSVP by this date (shown on the RSVP page).
-  rsvpBy: 'October 31, 2026',
+  rsvpBy: 'November 30, 2026',
 
   // Venue.
   venueName: 'Ligaya Villas',
@@ -53,7 +53,7 @@ export const WEDDING = {
   // Gifts note. We warmly prefer the gift of cash — framed gently and graciously.
   gifts: {
     title: 'The Gift of Your Presence',
-    body: 'Your presence on our special day is truly the greatest gift we could ask for. Should you wish to bless us a little further, we would be ever so grateful for the gift of cash — a small help as we build our first home and begin this new chapter together.',
+    body: 'Celebrating with you is our greatest joy. If you would like to bless us with a gift, we would be ever so grateful for a monetary gift to help us build our first home.',
     closing: 'Whatever you choose, your love and generosity mean the world to us. 💚',
   },
 
