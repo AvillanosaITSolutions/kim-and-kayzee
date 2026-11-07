@@ -259,8 +259,8 @@ export default function InvitePage() {
       key: 'details',
       content: (
         <>
-          <p className="ornament">❦</p>
-          <h3 className="page-title">When &amp; Where</h3>
+          {/* <p className="ornament">❦</p>
+          <h3 className="page-title">When &amp; Where</h3> */}
           <div className="invite-details">
             <div className="detail">
               <span className="detail-label">When</span>
